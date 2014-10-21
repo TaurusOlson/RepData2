@@ -1,0 +1,64 @@
+# Study of the damages caused by storms and weather events on economy and public health in the U.S between 1950 and 2011
+
+
+
+## Synopsis
+
+This report aims to study the consequences of the storms and severe weather events on the 
+economy and public health in the United States between 1950 and 2011.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric
+Administration's (NOAA) storm database. This database tracks characteristics of
+major storms and weather events in the United States, including when and where
+they occur, as well as estimates of any fatalities, injuries, and property
+damage.
+
+**TODO: Complete the synopsis**  
+
+
+## Data processing
+
+### Loading and preprocessing of the raw data
+
+We load the Storm data from a CSV file downloaded from the U.S National Oceanic
+and Atmospheric Administration's (NOAA) storm database.
+
+```{r loading,cache=TRUE}
+storm <- read.csv("data/repdata-data-StormData.csv")
+dim(storm)
+head(storm)
+```
+
+The the Storm data contains 902297 rows and 37 columns.
+
+We format properly the columns `BGN_DATE` and `END_DATE`:
+
+```{r clean_dates, cache=TRUE}
+bgn_dates <- as.Date(as.character(storm$BGN_DATE), "%m/%d/%Y")
+end_dates <- as.Date(as.character(storm$END_DATE), "%m/%d/%Y")
+```
+
+
+## Results
+
+### The most harmful events with respect to population health
+
+In this section we focus on the consequences of the weather events on the population health. In particular we'll set a ranking of the most harmful events designated by the variable `EVTYPE`. 
+
+Here are the 10 first most frequently recorded event types:
+```{r evtypes}
+head(rev(sort(table(storm$EVTYPE))), 10)
+```
+
+
+The variables of interest to determine which types of events are most harmful with respect to health population are the `FATALITIES` and `INJURIES`.
+
+```{r}
+library(dplyr)
+
+injuries <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(INJURIES)) %>% arrange(-total)
+fatalities <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(FATALITIES)) %>% arrange(-total)
+```
+
+
+### The types of events that had the greatest economic consequences
