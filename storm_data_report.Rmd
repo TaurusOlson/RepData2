@@ -1,5 +1,4 @@
-# Study of the damages caused by storms and weather events on economy and public health in the U.S between 1950 and 2011
-
+# Consequences of severe weather events on economy and public health in the U.S
 
 
 ## Synopsis
@@ -43,7 +42,9 @@ end_dates <- as.Date(as.character(storm$END_DATE), "%m/%d/%Y")
 
 ### The most harmful events with respect to population health
 
-In this section we focus on the consequences of the weather events on the population health. In particular we'll set a ranking of the most harmful events designated by the variable `EVTYPE`. 
+In this section we focus on the consequences of the weather events on the
+population health. In particular we'll set a ranking of the most harmful events
+designated by the variable `EVTYPE`. 
 
 Here are the 10 first most frequently recorded event types:
 ```{r evtypes}
@@ -51,7 +52,8 @@ head(rev(sort(table(storm$EVTYPE))), 10)
 ```
 
 
-The variables of interest to determine which types of events are most harmful with respect to health population are the `FATALITIES` and `INJURIES`.
+The variables of interest to determine which types of events are most harmful
+with respect to health population are the `FATALITIES` and `INJURIES`.
 
 ```{r}
 library(dplyr)
