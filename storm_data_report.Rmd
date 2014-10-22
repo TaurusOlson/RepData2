@@ -1,4 +1,4 @@
-# Consequences of severe weather events on economy and public health in the U.S
+# Consequences of severe weather events on public health and economy in the U.S between 1950 and 2011
 
 
 ## Synopsis
@@ -25,18 +25,32 @@ and Atmospheric Administration's (NOAA) storm database.
 ```{r loading,cache=TRUE}
 storm <- read.csv("data/repdata-data-StormData.csv")
 dim(storm)
-head(storm)
+head(storm, 3)
 ```
 
 The the Storm data contains 902297 rows and 37 columns.
 
+* Dates
+
 We format properly the columns `BGN_DATE` and `END_DATE`:
 
-```{r clean_dates, cache=TRUE}
+```{r clean_dates,cache=TRUE}
 bgn_dates <- as.Date(as.character(storm$BGN_DATE), "%m/%d/%Y")
 end_dates <- as.Date(as.character(storm$END_DATE), "%m/%d/%Y")
 ```
 
+
+* Event types
+
+A quick look at the event types revealed many inconsistencies in the naming. 
+This can be explained by the fact that the dataset covers a wide period (61 years)
+and has been updated by different people with different conventions.
+
+For example we find values like `THUNDERSTORM`, `THUNDERSTORMS` or 
+`TSTM WIND`, `THUNDERSTORM WIND`, `THUNDERSTORM WIND 59`
+and `THUNDERSTORM WIND 59 MPH.` (and even `THUNDERSTORM WINS`). 
+For the sake of simplicity, in this analysis, we make the assumption that singular
+and plural terms identical and therefore we remove . 
 
 ## Results
 
@@ -46,21 +60,37 @@ In this section we focus on the consequences of the weather events on the
 population health. In particular we'll set a ranking of the most harmful events
 designated by the variable `EVTYPE`. 
 
-Here are the 10 first most frequently recorded event types:
-```{r evtypes}
+In order to have an idea of what types of events are recorded here are the 
+10 first most frequent event types:
+
+```{r evtypes, cache=TRUE}
 head(rev(sort(table(storm$EVTYPE))), 10)
 ```
 
 
 The variables of interest to determine which types of events are most harmful
-with respect to health population are the `FATALITIES` and `INJURIES`.
+with respect to health population are the `INJURIES` and `FATALITIES`. 
+The following code computes the total injuries and fatalities grouped by events 
+types.
 
-```{r}
-library(dplyr)
+```{r most_harmful_event_types}
+suppressMessages(library(dplyr))
 
 injuries <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(INJURIES)) %>% arrange(-total)
 fatalities <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(FATALITIES)) %>% arrange(-total)
 ```
 
+We plot the 10 event types that respectively caused the most injuries and 
+fatalities across the U.S:
+
+```{r plot_of_most_harmful_event_types, fih.height=15, fig.width=12,}
+par(las=2, mfcol = c(1, 2), mar=c(6.1, 4.1, 4.1, 2.1))
+barplot(head(injuries$total, 10), names.arg = head(injuries$EVTYPE, 10), 
+        horiz = FALSE, cex.names = 0.8, col="seagreen", main="Total number of injuries",
+        xlab="Event types")
+barplot(head(fatalities$total, 10), names.arg = head(fatalities$EVTYPE, 10), 
+        horiz = FALSE, cex.names = 0.8, col="seagreen", main="Total number of fatalities",
+        xlab="Event types")
+```
 
 ### The types of events that had the greatest economic consequences
