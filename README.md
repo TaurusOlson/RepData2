@@ -1,4 +1,4 @@
-# Peer assessment 2 - Storm data
+# Storm data
 
 
 The goal of this assignment is to explore the Storm data and address the 2
@@ -12,3 +12,12 @@ following questions in a report:
 
 
 The methodology adopted in the report should follow the `Reproducible Research` principles.
+
+
+## NOTE
+
+Set the language settings with:
+
+```r
+Sys.setlocale("LC_ALL","C")
+```
