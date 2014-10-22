@@ -46,11 +46,30 @@ A quick look at the event types revealed many inconsistencies in the naming.
 This can be explained by the fact that the dataset covers a wide period (61 years)
 and has been updated by different people with different conventions.
 
-For example we find values like `THUNDERSTORM`, `THUNDERSTORMS` or 
-`TSTM WIND`, `THUNDERSTORM WIND`, `THUNDERSTORM WIND 59`
-and `THUNDERSTORM WIND 59 MPH.` (and even `THUNDERSTORM WINS`). 
+For example we find values like `'THUNDERSTORM'`, `'THUNDERSTORMS'` or 
+`'TSTM WIND'`, `'THUNDERSTORM WIND'`, `'THUNDERSTORM WIND 59'`
+and `'THUNDERSTORM WIND 59 MPH.'` (and even `'THUNDERSTORM WINS'`). 
 For the sake of simplicity, in this analysis, we make the assumption that singular
-and plural terms identical and therefore we remove . 
+and plural terms identical. 
+
+```{r tidy_event_types,cache=TRUE}
+endswith <- function(x, pattern) {
+    grepl(paste0(pattern, "$"), x)
+}
+
+singularize <- function(name) {
+    name <- as.character(name)
+    if (endswith(tolower(name), "s")) {
+        singular <- substr(name, 1, nchar(name)-1)
+    }
+    else {
+        singular <- name
+    }
+    return(singular)
+}
+
+storm$EVTYPE <- sapply(storm$EVTYPE, singularize)
+```
 
 ## Results
 
@@ -67,10 +86,9 @@ In order to have an idea of what types of events are recorded here are the
 head(rev(sort(table(storm$EVTYPE))), 10)
 ```
 
-
 The variables of interest to determine which types of events are most harmful
 with respect to health population are the `INJURIES` and `FATALITIES`. 
-The following code computes the total injuries and fatalities grouped by events 
+The following code computes the total injuries and fatalities grouped by event 
 types.
 
 ```{r most_harmful_event_types}
