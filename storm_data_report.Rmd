@@ -112,3 +112,11 @@ barplot(head(fatalities$total, 10), names.arg = head(fatalities$EVTYPE, 10),
 ```
 
 ### The types of events that had the greatest economic consequences
+
+In order to determine the economic cost of the different types of events we
+use the columns:
+
+* `CROPDMG` and `CROPDMGEXP` that contains the costs of the damages on crops  
+* `PROPDMG` and `PROPDMGEXP` that contains the costs of the damages on properties
+
+
