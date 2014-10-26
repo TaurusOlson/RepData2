@@ -3,28 +3,32 @@
 
 ## Synopsis
 
-This report aims to study the consequences of the storms and severe weather events on the 
-economy and public health in the United States between 1950 and 2011.
+This report aims to quantify the damages on population and the economic cost 
+of severe weather events in the United-States.
+In particular, we wanted to know what types of events are the most harmful on
+population and what types of events had the greatest economic impacts.
+In order to answer these questions, we analyzed the U.S.
+National Oceanic and Atmospheric Administration's (NOAA) storm database. This
+database tracks characteristics of major storms and weather events in the
+United States, including when and where they occur, as well as estimates of any
+fatalities, injuries, and property damage. The dataset we used, [Storm data][storm_data], 
+gathered all these information between 1950 and 2011.
+From these data, we were able to determine that tornadoes caused the most
+injuries and fatalities on population. From the economic perspective, droughts had the 
+greatest impacts on crops and floods had the greatest impacts on properties. 
 
-This project involves exploring the U.S. National Oceanic and Atmospheric
-Administration's (NOAA) storm database. This database tracks characteristics of
-major storms and weather events in the United States, including when and where
-they occur, as well as estimates of any fatalities, injuries, and property
-damage.
-
-**TODO: Complete the synopsis**  
 
 
 ## Data processing
 
 ### Loading and preprocessing of the raw data
 
-We load the Storm data from a CSV file downloaded from the U.S National Oceanic
-and Atmospheric Administration's (NOAA) storm database.
+We load the Storm data from the unzipped file downloaded from the U.S National
+Oceanic and Atmospheric Administration's (NOAA) storm database.
 
 
 ```r
-storm <- read.csv("data/repdata-data-StormData.csv")
+storm <- read.csv("repdata-data-StormData.csv")
 dim(storm)
 ```
 
@@ -67,8 +71,8 @@ We format properly the columns `BGN_DATE` and `END_DATE`:
 
 
 ```r
-bgn_dates <- as.Date(as.character(storm$BGN_DATE), "%m/%d/%Y")
-end_dates <- as.Date(as.character(storm$END_DATE), "%m/%d/%Y")
+storm$BGN_DATE <- as.Date(as.character(storm$BGN_DATE), "%m/%d/%Y")
+storm$END_DATE <- as.Date(as.character(storm$END_DATE), "%m/%d/%Y")
 ```
 
 
@@ -81,8 +85,14 @@ and has been updated by different people with different conventions.
 For example we find values like `'THUNDERSTORM'`, `'THUNDERSTORMS'` or 
 `'TSTM WIND'`, `'THUNDERSTORM WIND'`, `'THUNDERSTORM WIND 59'`
 and `'THUNDERSTORM WIND 59 MPH.'` (and even `'THUNDERSTORM WINS'`). 
-For the sake of simplicity, in this analysis, we make the assumption that singular
-and plural terms identical. 
+
+In this analysis, we make a few assumptions:  
+
+* singular and plural terms are identical  
+
+* uppercase and lowercase are identical  
+
+* some words are shortened
 
 
 ```r
@@ -101,10 +111,27 @@ singularize <- function(name) {
     return(singular)
 }
 
-storm$EVTYPE <- sapply(storm$EVTYPE, singularize)
+# Plural to singular
+event_types <- sapply(storm$EVTYPE, singularize)
+# All the event types are uppercase
+event_types <- toupper(event_types)
+# TSTM to THUNDERSTORM
+event_types <- gsub("TSTM", "THUNDERSTORM", event_types)
+# WND to WIND
+event_types <- gsub("WND", "WIND", event_types)
+storm$EVTYPE <- event_types
 ```
 
 ## Results
+
+The following results were obtained with functions from the base package and
+the `dplyr` package.
+
+
+```r
+suppressMessages(library(dplyr))
+```
+
 
 ### The most harmful events with respect to population health
 
@@ -133,12 +160,10 @@ head(rev(sort(table(storm$EVTYPE))), 10)
 The variables of interest to determine which types of events are most harmful
 with respect to health population are the `INJURIES` and `FATALITIES`. 
 The following code computes the total injuries and fatalities grouped by event 
-types.
+types and sorted in descending order:
 
 
 ```r
-suppressMessages(library(dplyr))
-
 injuries <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(INJURIES)) %>% arrange(-total)
 fatalities <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(FATALITIES)) %>% arrange(-total)
 ```
@@ -149,14 +174,119 @@ fatalities across the U.S:
 
 ```r
 par(las=2, mfcol = c(1, 2), mar=c(6.1, 4.1, 4.1, 2.1))
+
 barplot(head(injuries$total, 10), names.arg = head(injuries$EVTYPE, 10), 
         horiz = FALSE, cex.names = 0.8, col="seagreen", main="Total number of injuries",
-        xlab="Event types")
+        xlab="Event types", ylab="Count")
+
 barplot(head(fatalities$total, 10), names.arg = head(fatalities$EVTYPE, 10), 
         horiz = FALSE, cex.names = 0.8, col="seagreen", main="Total number of fatalities",
-        xlab="Event types")
+        xlab="Event types", ylab="Count")
 ```
 
 ![plot of chunk plot_of_most_harmful_event_types](figure/plot_of_most_harmful_event_types.png) 
 
+From these plots, we see that tornadoes are the weather events that caused the
+most injuries and fatalities between 1950 and 2011 across the U.S. 
+If we consider injuries, the 2nd and 3rd most harmful types of events are
+respectively thunderstorm winds and floods. In the case of fatalities, the
+equivalent are excessive heats and flash floods.
+
+
 ### The types of events that had the greatest economic consequences
+
+In order to determine the economic cost of the different types of events we
+use the columns:
+
+* `CROPDMG` and `CROPDMGEXP` that contains the costs of the damages on crops.  
+  The cost of crop damage is computed with the following equation: 
+  
+> cropdmg_cost = CROPDMG * 10^CROPDMGEXP
+  
+* `PROPDMG` and `PROPDMGEXP` that contains the costs of the damages on properties.  
+  The cost of property damage is computed with the following equation: 
+  
+> propdmg_cost = PROPDMG * 10^PROPDMGEXP
+
+The values in the columns `CROPDMGEXP` and `PROPDMGEXP` contain characters and 
+integers. First we set them to uppercase and combine them:
+
+
+```r
+# Set to upper case
+storm$CROPDMGEXP <- toupper(storm$CROPDMGEXP)
+storm$PROPDMGEXP <- toupper(storm$PROPDMGEXP)
+
+# Take the unique values
+cropdmgexp_values <- as.character(unique(storm$CROPDMGEXP))
+propdmgexp_values <- as.character(unique(storm$PROPDMGEXP))
+
+# Combine the unique upper case values using union 
+exp_values <- union(cropdmgexp_values, propdmgexp_values)
+print(exp_values)
+```
+
+```
+##  [1] ""  "M" "K" "B" "?" "0" "2" "+" "5" "6" "4" "3" "H" "7" "-" "1" "8"
+```
+
+Then we convert the characters to the corresponding integer that will be used
+as exponents. We can now calculate the cost for crop and property damages and
+stores the values in the columns `CROPDMG_COST` and `PROPDMG_COST`:
+
+
+```r
+exp_values_to_integers <- function(x) {
+    e <- list(K=3, M=6, B=9, 
+              "+"=0, "-"=0, "?"=0, 
+              "0"=0, "1"=1, "2"=2, "3"=3, "4"=4, "5"=5, "6"=6, "7"=7, "8"=8, "9"=9)
+        
+    if (x %in% names(e)) {
+            int_value <- e[[x]]
+    }
+    else {
+        int_value <- 0
+    }
+    return(int_value)
+}
+
+calculate_cost <- function(dmg, dmgexp) {
+    dmg*10^exp_values_to_integers(dmgexp)
+}
+
+storm$CROPDMG_COST = mapply(calculate_cost, storm$CROPDMG, storm$CROPDMGEXP)
+storm$PROPDMG_COST = mapply(calculate_cost, storm$PROPDMG, storm$PROPDMGEXP)
+```
+
+We group the data by types of events, sum the costs of the crop and property 
+damages and sort them in descending order:
+
+
+```r
+crop_damages_cost <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(CROPDMG_COST)) %>% arrange(-total)
+prop_damages_cost <- storm %>% group_by(EVTYPE) %>% summarise(total=sum(PROPDMG_COST)) %>% arrange(-total)
+```
+
+We plot the 10 event types that had the greatest economic impacts in the U.S:
+
+
+```r
+par(las=2, mfcol = c(1, 2), mar=c(6.1, 4.1, 4.1, 2.1))
+
+barplot(head(crop_damages_cost$total, 10), names.arg = head(crop_damages_cost$EVTYPE, 10), 
+        horiz = FALSE, cex.names = 0.8, col="tomato3", main="Cost of the damages on crops",
+        xlab="Event types", ylab="Amount (in dollars)")
+
+barplot(head(prop_damages_cost$total, 10), names.arg = head(prop_damages_cost$EVTYPE, 10), 
+        horiz = FALSE, cex.names = 0.8, col="tomato3", main="Cost of the damages on properties",
+        xlab="Event types", ylab="Amount (in dollars)")
+```
+
+![plot of chunk plot_of_most_expensive_event_types](figure/plot_of_most_expensive_event_types.png) 
+
+From these plots, we can see that the 3 types of events that had the greatest
+economic impacts on crops were droughts, floods and river floods.
+The equivalent on properties are floods, hurricanes/typhoons and tornadoes.
+
+
+[storm_data]: https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
